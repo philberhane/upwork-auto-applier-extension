@@ -164,38 +164,48 @@ class UpworkContentScript {
   }
 
   async processJob(jobData) {
-    console.log('Processing job with data:', jobData);
+    console.log('🚀 Processing job with data:', jobData);
     
     try {
       // Navigate to job URL
       if (window.location.href !== jobData.jobUrl) {
-        console.log('Navigating to job URL:', jobData.jobUrl);
+        console.log('🌐 Navigating to job URL:', jobData.jobUrl);
         window.location.href = jobData.jobUrl;
-        await this.wait(3000); // Wait for page load
+        console.log('⏳ Waiting 5 seconds for page load...');
+        await this.wait(5000); // Wait longer for page load
       }
       
+      console.log('📄 Current URL after navigation:', window.location.href);
+      
       // Wait for page to be ready
+      console.log('⏳ Waiting for page to be ready...');
       await this.waitForPageLoad();
+      console.log('✅ Page is ready');
       
       // Fill cover letter
       if (jobData.coverLetter) {
-        console.log('Filling cover letter');
+        console.log('📝 Filling cover letter:', jobData.coverLetter.substring(0, 100) + '...');
         await this.fillCoverLetter(jobData.coverLetter);
+        console.log('✅ Cover letter filled');
       }
       
       // Fill screening questions if any
       if (jobData.screeningResponses) {
-        console.log('Filling screening questions');
+        console.log('❓ Filling screening questions:', jobData.screeningResponses);
         await this.fillScreeningQuestions(jobData.screeningResponses);
+        console.log('✅ Screening questions filled');
       }
       
       // Apply to job
-      console.log('Applying to job');
+      console.log('🎯 Applying to job...');
       await this.applyToJob();
+      console.log('✅ Job application submitted');
       
       // Wait for success confirmation
+      console.log('⏳ Waiting for confirmation...');
       await this.wait(jobData.timing.delayAfterApply);
       
+      console.log('🎉 Job application completed successfully!');
       return { 
         status: 'completed', 
         message: 'Job application completed successfully',
@@ -203,7 +213,7 @@ class UpworkContentScript {
       };
       
     } catch (error) {
-      console.error('Job processing failed:', error);
+      console.error('❌ Job processing failed:', error);
       throw error;
     }
   }
@@ -318,25 +328,35 @@ class UpworkContentScript {
   }
 
   async fillCoverLetter(coverLetter) {
+    console.log('🔍 Looking for cover letter textarea...');
     const textareaSelectors = [
       'textarea[name="coverLetter"]',
       'textarea[data-test="cover-letter"]',
       'textarea[placeholder*="cover letter"]',
       'textarea[placeholder*="proposal"]',
-      'textarea[placeholder*="message"]'
+      'textarea[placeholder*="message"]',
+      'textarea',
+      'input[type="text"]'
     ];
     
+    console.log('📄 Current page HTML preview:', document.body.innerHTML.substring(0, 500));
+    
     for (const selector of textareaSelectors) {
+      console.log(`🔍 Trying selector: ${selector}`);
       const textarea = document.querySelector(selector);
+      console.log(`📝 Found element:`, textarea);
+      
       if (textarea && textarea.offsetParent !== null) {
+        console.log('✅ Found visible textarea, filling cover letter');
         textarea.value = coverLetter;
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         textarea.dispatchEvent(new Event('change', { bubbles: true }));
-        console.log('Cover letter filled successfully');
+        console.log('✅ Cover letter filled successfully');
         return;
       }
     }
     
+    console.error('❌ Cover letter textarea not found');
     throw new Error('Cover letter textarea not found');
   }
 

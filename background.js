@@ -349,6 +349,17 @@ class UpworkAutoApplier {
   async processJobOnTab(tabId, jobData) {
     try {
       console.log('📤 Sending job to content script on tab:', tabId);
+      
+      // First, test if content script is responding
+      console.log('🏓 Testing content script with ping...');
+      const pingResponse = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+      console.log('🏓 Ping response:', pingResponse);
+      
+      if (!pingResponse) {
+        throw new Error('Content script not responding to ping');
+      }
+      
+      // Now send the job
       const response = await chrome.tabs.sendMessage(tabId, {
         action: 'process_job',
         jobData: jobData
