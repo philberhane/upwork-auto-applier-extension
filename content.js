@@ -10,6 +10,9 @@ class UpworkContentScript {
     if (this.isUpworkPage) {
       console.log('Upwork Auto Applier: Content script loaded on Upwork page');
       this.setupUpworkPage();
+      
+      // Check if there's stored job data from a previous page reload
+      this.checkForStoredJobData();
     }
   }
 
@@ -59,6 +62,82 @@ class UpworkContentScript {
         indicator.style.opacity = '0.7';
       }
     }, 5000);
+  }
+
+  checkForStoredJobData() {
+    // Check if there's job data stored from a previous page reload
+    const storedJobData = sessionStorage.getItem('upworkJobData');
+    if (storedJobData) {
+      console.log('🔄 Found stored job data from page reload, processing...');
+      try {
+        const jobData = JSON.parse(storedJobData);
+        // Process the job after a short delay to ensure page is ready
+        setTimeout(() => {
+          this.processJobAfterReload(jobData);
+        }, 2000);
+      } catch (error) {
+        console.error('❌ Failed to parse stored job data:', error);
+        sessionStorage.removeItem('upworkJobData');
+      }
+    }
+  }
+
+  async processJobAfterReload(jobData) {
+    console.log('🔄 Processing job after page reload:', jobData);
+    
+    try {
+      // Wait for page to be ready
+      console.log('⏳ Waiting for page to be ready after reload...');
+      await this.waitForPageLoad();
+      console.log('✅ Page is ready after reload');
+      
+      // Fill cover letter
+      if (jobData.coverLetter) {
+        console.log('📝 Filling cover letter:', jobData.coverLetter.substring(0, 100) + '...');
+        await this.fillCoverLetter(jobData.coverLetter);
+        console.log('✅ Cover letter filled');
+      }
+      
+      // Fill screening questions if any
+      if (jobData.screeningResponses) {
+        console.log('❓ Filling screening questions:', jobData.screeningResponses);
+        await this.fillScreeningQuestions(jobData.screeningResponses);
+        console.log('✅ Screening questions filled');
+      }
+      
+      // Apply to job
+      console.log('🎯 Applying to job...');
+      await this.applyToJob();
+      console.log('✅ Job application submitted');
+      
+      // Wait for success confirmation
+      console.log('⏳ Waiting for confirmation...');
+      await this.wait(jobData.timing?.delayAfterApply || 3000);
+      
+      console.log('🎉 Job application completed successfully!');
+      
+      // Clear stored job data
+      sessionStorage.removeItem('upworkJobData');
+      
+      // Notify background script of completion
+      chrome.runtime.sendMessage({
+        type: 'job_completed',
+        jobId: jobData.jobId,
+        success: true,
+        message: 'Job application completed successfully'
+      });
+      
+    } catch (error) {
+      console.error('❌ Job processing after reload failed:', error);
+      sessionStorage.removeItem('upworkJobData');
+      
+      // Notify background script of failure
+      chrome.runtime.sendMessage({
+        type: 'job_failed',
+        jobId: jobData.jobId,
+        error: error.message
+      });
+    }
   }
 
   showStatusPopup() {
@@ -167,12 +246,16 @@ class UpworkContentScript {
     console.log('🚀 Processing job with data:', jobData);
     
     try {
+      // Store job data in sessionStorage to survive page reloads
+      sessionStorage.setItem('upworkJobData', JSON.stringify(jobData));
+      console.log('💾 Job data stored in sessionStorage');
+      
       // Navigate to job URL
       if (window.location.href !== jobData.jobUrl) {
         console.log('🌐 Navigating to job URL:', jobData.jobUrl);
         window.location.href = jobData.jobUrl;
-        console.log('⏳ Waiting 5 seconds for page load...');
-        await this.wait(5000); // Wait longer for page load
+        // Don't wait here - the page will reload and content script will restart
+        return { success: true, message: 'Navigating to job page...' };
       }
       
       console.log('📄 Current URL after navigation:', window.location.href);
