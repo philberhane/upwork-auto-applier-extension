@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upwork Auto Applier - Install Extension</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+        .browser-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .browser-section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .steps {
+            counter-reset: step-counter;
+        }
+        .step {
+            counter-increment: step-counter;
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #4CAF50;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .download-btn {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .download-btn:hover {
+            background: #45a049;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Upwork Auto Applier</h1>
+            <p>Install the browser extension to get started</p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> You need to install the browser extension to use this service. The extension allows you to log into Upwork manually while the system applies to jobs automatically.
+        </div>
+
+        <div class="browser-section">
+            <h3>🟢 For Google Chrome</h3>
+            <div class="steps">
+                <div class="step">
+                    <strong>Download the extension:</strong>
+                    <br><a href="upwork-auto-applier-extension.zip" class="download-btn">Download Extension</a>
+                </div>
+                <div class="step">
+                    <strong>Extract the ZIP file</strong> to a folder on your computer
+                </div>
+                <div class="step">
+                    <strong>Open Chrome</strong> and go to <span class="code">chrome://extensions/</span>
+                </div>
+                <div class="step">
+                    <strong>Enable Developer mode</strong> (toggle in the top right corner)
+                </div>
+                <div class="step">
+                    <strong>Click "Load unpacked"</strong> and select the extracted extension folder
+                </div>
+                <div class="step">
+                    <strong>Verify installation:</strong> You should see the Upwork Auto Applier icon in your browser toolbar
+                </div>
+            </div>
+        </div>
+
+        <div class="browser-section">
+            <h3>🦊 For Mozilla Firefox</h3>
+            <div class="steps">
+                <div class="step">
+                    <strong>Download the extension:</strong>
+                    <br><a href="upwork-auto-applier-extension.zip" class="download-btn">Download Extension</a>
+                </div>
+                <div class="step">
+                    <strong>Extract the ZIP file</strong> to a folder on your computer
+                </div>
+                <div class="step">
+                    <strong>Open Firefox</strong> and go to <span class="code">about:debugging</span>
+                </div>
+                <div class="step">
+                    <strong>Click "This Firefox"</strong> in the left sidebar
+                </div>
+                <div class="step">
+                    <strong>Click "Load Temporary Add-on"</strong>
+                </div>
+                <div class="step">
+                    <strong>Select the manifest.json file</strong> from the extracted extension folder
+                </div>
+                <div class="step">
+                    <strong>Verify installation:</strong> You should see the Upwork Auto Applier icon in your browser toolbar
+                </div>
+            </div>
+        </div>
+
+        <div class="success">
+            <strong>✅ After Installation:</strong>
+            <ol>
+                <li>Click the extension icon in your browser toolbar</li>
+                <li>Click "Connect to Service" when you run the Apify actor</li>
+                <li>Navigate to Upwork and log into your account</li>
+                <li>The extension will automatically apply to jobs for you!</li>
+            </ol>
+        </div>
+
+        <div class="warning">
+            <strong>🔒 Security Note:</strong> The extension only works with Upwork.com and our secure backend service. It doesn't store any sensitive information and you maintain full control over your Upwork account.
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #666;">
+            <p>Need help? Check the <a href="README.md">README</a> or contact support.</p>
+        </div>
+    </div>
+</body>
+</html>

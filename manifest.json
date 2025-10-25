@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Upwork Auto Applier",
+  "version": "1.0.0",
+  "description": "Automatically apply to Upwork jobs with manual login support",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "host_permissions": [
+    "https://www.upwork.com/*",
+    "https://upwork-auto-applier-backend-production.up.railway.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.upwork.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Upwork Auto Applier"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://www.upwork.com/*"]
+    }
+  ]
+}
