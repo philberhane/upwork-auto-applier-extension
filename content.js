@@ -86,10 +86,15 @@ class UpworkContentScript {
     console.log('🔄 Processing job after page reload:', jobData);
     
     try {
-      // Wait for page to be ready
-      console.log('⏳ Waiting for page to be ready after reload...');
+      // Wait longer for Cloudflare and page to be ready
+      console.log('⏳ Waiting for Cloudflare and page to be ready after reload...');
+      await this.wait(10000); // Wait 10 seconds for Cloudflare
       await this.waitForPageLoad();
       console.log('✅ Page is ready after reload');
+      
+      // Additional wait for dynamic content
+      console.log('⏳ Waiting for dynamic content to load...');
+      await this.wait(5000);
       
       // Fill cover letter
       if (jobData.coverLetter) {
@@ -255,7 +260,12 @@ class UpworkContentScript {
         console.log('🌐 Navigating to job URL:', jobData.jobUrl);
         window.location.href = jobData.jobUrl;
         // Don't wait here - the page will reload and content script will restart
-        return { success: true, message: 'Navigating to job page...' };
+        // Return a promise that resolves after navigation
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ success: true, message: 'Navigating to job page...' });
+          }, 100);
+        });
       }
       
       console.log('📄 Current URL after navigation:', window.location.href);
@@ -412,6 +422,10 @@ class UpworkContentScript {
 
   async fillCoverLetter(coverLetter) {
     console.log('🔍 Looking for cover letter textarea...');
+    
+    // Wait a bit for dynamic content to load
+    await this.wait(2000);
+    
     const textareaSelectors = [
       'textarea[name="coverLetter"]',
       'textarea[data-test="cover-letter"]',
@@ -439,6 +453,21 @@ class UpworkContentScript {
       }
     }
     
+    // Fallback: find any textarea by looking through all textareas
+    console.log('Trying fallback method to find textarea...');
+    const allTextareas = document.querySelectorAll('textarea');
+    for (const textarea of allTextareas) {
+      if (textarea.offsetParent !== null) {
+        console.log('✅ Found textarea via fallback');
+        textarea.focus();
+        textarea.value = coverLetter;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('✅ Cover letter filled successfully');
+        return;
+      }
+    }
+    
     console.error('❌ Cover letter textarea not found');
     throw new Error('Cover letter textarea not found');
   }
@@ -454,17 +483,33 @@ class UpworkContentScript {
     const buttonSelectors = [
       'button[data-test="submit-btn"]',
       'button[data-cy="submit-btn"]',
-      'button:contains("Submit Proposal")',
-      'button:contains("Submit")',
+      'button[type="submit"]',
       'input[type="submit"]',
       '.submit-proposal-btn',
-      '.apply-btn'
+      '.apply-btn',
+      'button[class*="submit"]',
+      'button[class*="proposal"]'
     ];
     
     for (const selector of buttonSelectors) {
       const button = document.querySelector(selector);
       if (button && button.offsetParent !== null) {
         console.log('Found apply button, clicking...');
+        button.click();
+        console.log('Apply button clicked successfully');
+        return;
+      }
+    }
+    
+    // Fallback: find button by text content
+    console.log('Trying fallback method to find submit button...');
+    const allButtons = document.querySelectorAll('button');
+    for (const button of allButtons) {
+      if (button.offsetParent !== null && 
+          (button.textContent.includes('Submit Proposal') || 
+           button.textContent.includes('Submit') ||
+           button.textContent.includes('Apply'))) {
+        console.log('Found apply button by text content, clicking...');
         button.click();
         console.log('Apply button clicked successfully');
         return;
@@ -478,11 +523,12 @@ class UpworkContentScript {
     const selectors = [
       'button[data-test="submit-btn"]',
       'button[data-cy="submit-btn"]',
-      'button:contains("Submit Proposal")',
-      'button:contains("Submit")',
+      'button[type="submit"]',
       'input[type="submit"]',
       '.submit-proposal-btn',
-      '.apply-btn'
+      '.apply-btn',
+      'button[class*="submit"]',
+      'button[class*="proposal"]'
     ];
     
     for (const selector of selectors) {
