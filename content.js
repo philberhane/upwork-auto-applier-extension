@@ -118,8 +118,8 @@ class UpworkContentScript {
 
   handleMessage(request, sendResponse) {
     switch (request.action) {
-      case 'execute_instructions':
-        this.executeInstructions(request.instructions)
+      case 'process_job':
+        this.processJob(request.jobData)
           .then(result => sendResponse({ success: true, result }))
           .catch(error => sendResponse({ success: false, error: error.message }));
         return true; // Keep message channel open for async response
@@ -149,24 +149,49 @@ class UpworkContentScript {
     }
   }
 
-  async executeInstructions(instructions) {
-    console.log('Executing instructions:', instructions);
+  async processJob(jobData) {
+    console.log('Processing job with data:', jobData);
     
-    for (const instruction of instructions) {
-      try {
-        await this.executeCommand(instruction);
-        
-        // Wait after command if specified
-        if (instruction.waitAfter) {
-          await this.wait(instruction.waitAfter);
-        }
-      } catch (error) {
-        console.error('Command failed:', instruction, error);
-        throw error;
+    try {
+      // Navigate to job URL
+      if (window.location.href !== jobData.jobUrl) {
+        console.log('Navigating to job URL:', jobData.jobUrl);
+        window.location.href = jobData.jobUrl;
+        await this.wait(3000); // Wait for page load
       }
+      
+      // Wait for page to be ready
+      await this.waitForPageLoad();
+      
+      // Fill cover letter
+      if (jobData.coverLetter) {
+        console.log('Filling cover letter');
+        await this.fillCoverLetter(jobData.coverLetter);
+      }
+      
+      // Fill screening questions if any
+      if (jobData.screeningResponses) {
+        console.log('Filling screening questions');
+        await this.fillScreeningQuestions(jobData.screeningResponses);
+      }
+      
+      // Apply to job
+      console.log('Applying to job');
+      await this.applyToJob();
+      
+      // Wait for success confirmation
+      await this.wait(jobData.timing.delayAfterApply);
+      
+      return { 
+        status: 'completed', 
+        message: 'Job application completed successfully',
+        jobId: jobData.jobId
+      };
+      
+    } catch (error) {
+      console.error('Job processing failed:', error);
+      throw error;
     }
-    
-    return { status: 'completed', message: 'All instructions executed' };
   }
 
   async executeCommand(command) {
@@ -276,6 +301,60 @@ class UpworkContentScript {
 
   async wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async fillCoverLetter(coverLetter) {
+    const textareaSelectors = [
+      'textarea[name="coverLetter"]',
+      'textarea[data-test="cover-letter"]',
+      'textarea[placeholder*="cover letter"]',
+      'textarea[placeholder*="proposal"]',
+      'textarea[placeholder*="message"]'
+    ];
+    
+    for (const selector of textareaSelectors) {
+      const textarea = document.querySelector(selector);
+      if (textarea && textarea.offsetParent !== null) {
+        textarea.value = coverLetter;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('Cover letter filled successfully');
+        return;
+      }
+    }
+    
+    throw new Error('Cover letter textarea not found');
+  }
+
+  async fillScreeningQuestions(responses) {
+    // This is where you'd fill screening questions
+    // For now, just log that we received them
+    console.log('Screening responses received:', responses);
+    // In a real implementation, you'd find and fill the screening question fields
+  }
+
+  async applyToJob() {
+    const buttonSelectors = [
+      'button[data-test="submit-btn"]',
+      'button[data-cy="submit-btn"]',
+      'button:contains("Submit Proposal")',
+      'button:contains("Submit")',
+      'input[type="submit"]',
+      '.submit-proposal-btn',
+      '.apply-btn'
+    ];
+    
+    for (const selector of buttonSelectors) {
+      const button = document.querySelector(selector);
+      if (button && button.offsetParent !== null) {
+        console.log('Found apply button, clicking...');
+        button.click();
+        console.log('Apply button clicked successfully');
+        return;
+      }
+    }
+    
+    throw new Error('Apply button not found');
   }
 
   findApplyButton() {

@@ -86,6 +86,8 @@ class UpworkAutoApplier {
   async handleJobApplication(data) {
     console.log('Processing job application:', data);
     
+    const jobData = data.jobData;
+    
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
@@ -97,18 +99,17 @@ class UpworkAutoApplier {
       return;
     }
 
-    // Send instructions to content script
+    // Send job data to content script for processing
     try {
       const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'execute_instructions',
-        instructions: data.instructions,
-        jobId: data.jobId
+        action: 'process_job',
+        jobData: jobData
       });
       
       // Send result back to backend
       this.sendToBackend({
         type: 'job_completed',
-        jobId: data.jobId,
+        jobId: jobData.jobId,
         success: response.success,
         message: response.message || 'Job application completed'
       });
@@ -117,7 +118,7 @@ class UpworkAutoApplier {
       console.error('Job application failed:', error);
       this.sendToBackend({
         type: 'job_failed',
-        jobId: data.jobId,
+        jobId: jobData.jobId,
         error: error.message
       });
     }
