@@ -73,7 +73,7 @@ class UpworkAutoApplier {
     
     switch (data.type) {
       case 'job_application':
-        await this.handleJobApplication(data.job);
+        await this.handleJobApplication(data);
         break;
       case 'login_required':
         await this.showLoginPrompt();
@@ -90,6 +90,10 @@ class UpworkAutoApplier {
     console.log('Processing job application:', data);
     
     const jobData = data.jobData;
+    if (!jobData) {
+      console.error('❌ No jobData in message:', data);
+      return;
+    }
     
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
