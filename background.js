@@ -6,6 +6,7 @@ class UpworkAutoApplier {
     this.sessionId = null;
     this.isConnected = false;
     this.ws = null;
+    this.manualLoginConfirmed = false;
     this.init();
   }
 
@@ -232,6 +233,18 @@ class UpworkAutoApplier {
   async checkAndReportLoginStatus() {
     try {
       console.log('🔍 checkAndReportLoginStatus: Starting login check...');
+      
+      // Check if manual login confirmation is required
+      if (!this.manualLoginConfirmed) {
+        console.log('❌ Manual login confirmation required - user must click "I\'m Logged Into Upwork" button');
+        this.sendToBackend({
+          type: 'login_status',
+          isLoggedIn: false,
+          sessionId: this.sessionId
+        });
+        return;
+      }
+      
       // Get all Upwork tabs
       const tabs = await chrome.tabs.query({ url: ['https://www.upwork.com/*', 'https://upwork.com/*'] });
       console.log('📊 Found Upwork tabs:', tabs.length);
@@ -538,6 +551,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
     case 'confirm_login':
       console.log('🔐 Background: User confirmed login manually');
+      upworkApplier.manualLoginConfirmed = true;
       upworkApplier.sendToBackend({
         type: 'login_status',
         isLoggedIn: true,
@@ -552,6 +566,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.storage.local.clear();
       upworkApplier.sessionId = null;
       upworkApplier.isConnected = false;
+      upworkApplier.manualLoginConfirmed = false;
       upworkApplier.updateBadge('OFF');
       sendResponse({ success: true });
       break;

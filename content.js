@@ -181,6 +181,11 @@ class UpworkContentScript {
         console.log('✅ Screening questions filled');
       }
       
+      // Handle rate increase/frequency settings
+      console.log('💰 Handling rate increase/frequency settings...');
+      await this.handleRateIncrease();
+      console.log('✅ Rate increase handled');
+      
       // Apply to job
       console.log('🎯 Applying to job...');
       await this.applyToJob();
@@ -610,6 +615,92 @@ class UpworkContentScript {
     // For now, just log that we received them
     console.log('Screening responses received:', responses);
     // In a real implementation, you'd find and fill the screening question fields
+  }
+
+  async handleRateIncrease() {
+    console.log('🔍 Looking for rate increase/frequency settings...');
+    
+    // Common selectors for rate increase elements
+    const rateSelectors = [
+      'input[name*="rate"]',
+      'input[name*="budget"]',
+      'input[name*="hourly"]',
+      'input[type="number"]',
+      'input[placeholder*="rate"]',
+      'input[placeholder*="budget"]',
+      'input[placeholder*="hourly"]',
+      'input[data-test*="rate"]',
+      'input[data-cy*="rate"]',
+      '.rate-input',
+      '.budget-input',
+      '.hourly-rate-input'
+    ];
+    
+    // Look for rate increase checkboxes/buttons
+    const checkboxSelectors = [
+      'input[type="checkbox"][name*="increase"]',
+      'input[type="checkbox"][name*="rate"]',
+      'input[type="checkbox"][name*="budget"]',
+      'input[type="checkbox"][data-test*="increase"]',
+      'input[type="checkbox"][data-cy*="increase"]',
+      'input[type="checkbox"][aria-label*="increase"]',
+      'input[type="checkbox"][aria-label*="rate"]'
+    ];
+    
+    // Look for frequency/duration settings
+    const frequencySelectors = [
+      'select[name*="frequency"]',
+      'select[name*="duration"]',
+      'select[name*="period"]',
+      'select[data-test*="frequency"]',
+      'select[data-cy*="frequency"]',
+      '.frequency-select',
+      '.duration-select'
+    ];
+    
+    // Handle rate increase checkboxes
+    for (const selector of checkboxSelectors) {
+      const checkbox = document.querySelector(selector);
+      if (checkbox && checkbox.offsetParent !== null) {
+        console.log('✅ Found rate increase checkbox, checking it...');
+        if (!checkbox.checked) {
+          checkbox.click();
+          console.log('✅ Rate increase checkbox checked');
+        }
+      }
+    }
+    
+    // Handle frequency/duration selects
+    for (const selector of frequencySelectors) {
+      const select = document.querySelector(selector);
+      if (select && select.offsetParent !== null) {
+        console.log('✅ Found frequency/duration select, setting to maximum...');
+        // Try to select the highest value option
+        const options = select.querySelectorAll('option');
+        if (options.length > 0) {
+          // Select the last option (usually highest value)
+          select.selectedIndex = options.length - 1;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          console.log('✅ Frequency/duration set to maximum');
+        }
+      }
+    }
+    
+    // Look for any "increase" or "raise" buttons
+    const increaseButtons = document.querySelectorAll('button, a, span');
+    for (const button of increaseButtons) {
+      const text = button.textContent?.toLowerCase() || '';
+      if (text.includes('increase') || text.includes('raise') || text.includes('more')) {
+        if (button.offsetParent !== null) {
+          console.log('✅ Found increase button, clicking...');
+          button.click();
+          console.log('✅ Increase button clicked');
+          await this.wait(1000); // Wait after clicking
+        }
+      }
+    }
+    
+    console.log('💰 Rate increase handling completed');
   }
 
   async applyToJob() {
