@@ -613,42 +613,90 @@ class UpworkContentScript {
   }
 
   async applyToJob() {
+    console.log('🔍 Looking for apply/submit button...');
+    
+    // Wait a bit more for dynamic content
+    await this.wait(3000);
+    
     const buttonSelectors = [
       'button[data-test="submit-btn"]',
       'button[data-cy="submit-btn"]',
+      'button[data-test="submit-proposal-btn"]',
+      'button[data-cy="submit-proposal-btn"]',
       'button[type="submit"]',
       'input[type="submit"]',
       '.submit-proposal-btn',
       '.apply-btn',
       'button[class*="submit"]',
-      'button[class*="proposal"]'
+      'button[class*="proposal"]',
+      'button[class*="apply"]',
+      '[data-test*="submit"]',
+      '[data-cy*="submit"]',
+      'button[aria-label*="Submit"]',
+      'button[aria-label*="Apply"]'
     ];
     
+    console.log('📄 Current page HTML preview:', document.body.innerHTML.substring(0, 1000));
+    
     for (const selector of buttonSelectors) {
+      console.log(`🔍 Trying selector: ${selector}`);
       const button = document.querySelector(selector);
+      console.log(`🔘 Found element:`, button);
+      
       if (button && button.offsetParent !== null) {
-        console.log('Found apply button, clicking...');
+        console.log('✅ Found visible apply button, clicking...');
         button.click();
-        console.log('Apply button clicked successfully');
+        console.log('✅ Apply button clicked successfully');
         return;
       }
     }
     
     // Fallback: find button by text content
-    console.log('Trying fallback method to find submit button...');
+    console.log('🔍 Trying fallback method to find submit button...');
     const allButtons = document.querySelectorAll('button');
+    console.log(`📊 Found ${allButtons.length} buttons on page`);
+    
     for (const button of allButtons) {
+      const text = button.textContent.trim();
+      console.log(`🔘 Button text: "${text}"`);
+      
       if (button.offsetParent !== null && 
-          (button.textContent.includes('Submit Proposal') || 
-           button.textContent.includes('Submit') ||
-           button.textContent.includes('Apply'))) {
-        console.log('Found apply button by text content, clicking...');
+          (text.includes('Submit Proposal') || 
+           text.includes('Submit') ||
+           text.includes('Apply') ||
+           text.includes('Send Proposal') ||
+           text.includes('Propose'))) {
+        console.log('✅ Found apply button by text content, clicking...');
         button.click();
-        console.log('Apply button clicked successfully');
+        console.log('✅ Apply button clicked successfully');
         return;
       }
     }
     
+    // Last resort: look for any button that might be a submit button
+    console.log('🔍 Last resort: looking for any submit-like button...');
+    const allElements = document.querySelectorAll('*');
+    for (const element of allElements) {
+      if (element.tagName === 'BUTTON' || element.tagName === 'INPUT') {
+        const text = element.textContent?.trim() || element.value?.trim() || '';
+        if (text && (
+          text.toLowerCase().includes('submit') ||
+          text.toLowerCase().includes('apply') ||
+          text.toLowerCase().includes('propose') ||
+          text.toLowerCase().includes('send')
+        )) {
+          console.log(`🔘 Found potential submit element: "${text}"`);
+          if (element.offsetParent !== null) {
+            console.log('✅ Clicking potential submit button...');
+            element.click();
+            console.log('✅ Potential submit button clicked');
+            return;
+          }
+        }
+      }
+    }
+    
+    console.error('❌ Apply button not found after exhaustive search');
     throw new Error('Apply button not found');
   }
 
