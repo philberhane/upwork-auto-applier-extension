@@ -29,6 +29,16 @@ class UpworkAutoApplier {
         console.log('Connected to Upwork Auto Applier API');
         this.isConnected = true;
         this.updateBadge('ON');
+        
+        // Send extension connected message
+        this.sendToBackend({
+          type: 'extension_connected',
+          sessionId: this.sessionId
+        });
+        
+        // Check login status and start monitoring
+        this.checkAndReportLoginStatus();
+        this.startLoginMonitoring();
       };
 
       this.ws.onmessage = (event) => {
@@ -188,23 +198,116 @@ class UpworkAutoApplier {
     chrome.action.setBadgeBackgroundColor({ color: text === 'ON' ? '#4CAF50' : '#FF5722' });
   }
 
+  async checkAndReportLoginStatus() {
+    try {
+      // Get all Upwork tabs
+      const tabs = await chrome.tabs.query({ url: ['https://www.upwork.com/*', 'https://upwork.com/*'] });
+      
+      if (tabs.length === 0) {
+        // No Upwork tabs open, user not logged in
+        this.sendToBackend({
+          type: 'login_status',
+          isLoggedIn: false,
+          sessionId: this.sessionId
+        });
+        return;
+      }
+
+      // Check login status on the first Upwork tab
+      const tab = tabs[0];
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'check_login_status'
+      });
+
+      if (response && response.isLoggedIn !== undefined) {
+        this.sendToBackend({
+          type: 'login_status',
+          isLoggedIn: response.isLoggedIn,
+          sessionId: this.sessionId
+        });
+        
+        // Update storage
+        await chrome.storage.local.set({ isLoggedIn: response.isLoggedIn });
+      }
+    } catch (error) {
+      console.error('Failed to check login status:', error);
+      // Assume not logged in if we can't check
+      this.sendToBackend({
+        type: 'login_status',
+        isLoggedIn: false,
+        sessionId: this.sessionId
+      });
+    }
+  }
+
+  startLoginMonitoring() {
+    // Check login status every 10 seconds
+    this.loginCheckInterval = setInterval(() => {
+      this.checkAndReportLoginStatus();
+    }, 10000);
+  }
+
+  stopLoginMonitoring() {
+    if (this.loginCheckInterval) {
+      clearInterval(this.loginCheckInterval);
+      this.loginCheckInterval = null;
+    }
+  }
+
   async connectToSession(sessionId) {
     try {
       this.sessionId = sessionId;
       
+      // Check if user is already logged in before storing session info
+      const isAlreadyLoggedIn = await this.checkCurrentLoginStatus();
+      
       // Store session info
       await chrome.storage.local.set({
         sessionId: this.sessionId,
-        isLoggedIn: true
+        isLoggedIn: isAlreadyLoggedIn
       });
       
       // Connect to API with specific session
       this.connectToAPI();
       
-      return { sessionId: this.sessionId, message: 'Connected to session' };
+      return { 
+        sessionId: this.sessionId, 
+        message: 'Connected to session',
+        isLoggedIn: isAlreadyLoggedIn
+      };
     } catch (error) {
       console.error('Failed to connect to session:', error);
       throw error;
+    }
+  }
+
+  async checkCurrentLoginStatus() {
+    try {
+      // Get all Upwork tabs
+      const tabs = await chrome.tabs.query({ url: ['https://www.upwork.com/*', 'https://upwork.com/*'] });
+      
+      if (tabs.length === 0) {
+        console.log('No Upwork tabs found - user not logged in');
+        return false;
+      }
+
+      // Check login status on the first Upwork tab
+      const tab = tabs[0];
+      console.log('Checking login status on tab:', tab.url);
+      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'check_login_status'
+      });
+
+      if (response && response.isLoggedIn !== undefined) {
+        console.log('Login status detected:', response.isLoggedIn);
+        return response.isLoggedIn;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to check current login status:', error);
+      return false;
     }
   }
 
@@ -266,6 +369,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
     case 'disconnect':
       upworkApplier.ws?.close();
+      upworkApplier.stopLoginMonitoring();
       chrome.storage.local.clear();
       upworkApplier.sessionId = null;
       upworkApplier.isConnected = false;

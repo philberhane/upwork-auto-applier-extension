@@ -80,7 +80,10 @@ class PopupController {
         this.sessionId = sessionId;
         this.isConnected = true;
         this.updateUI();
-        this.showMessage('Connected to session successfully!', 'success');
+        
+        // Show login status in message
+        const loginStatus = response.data?.isLoggedIn ? 'and logged into Upwork' : 'but not logged into Upwork';
+        this.showMessage(`Connected to session successfully ${loginStatus}!`, 'success');
       } else {
         throw new Error(response.error || 'Failed to connect to session');
       }

@@ -313,25 +313,61 @@ class UpworkContentScript {
   }
 
   async checkLoginStatus() {
-    // Check for login indicators
+    console.log('Checking login status on:', window.location.href);
+    
+    // Check for login indicators - more comprehensive list
     const loginIndicators = [
       '[data-test="user-menu"]',
       '.user-menu',
       '[data-cy="user-menu"]',
       '.upwork-header-user',
       'a[href*="/logout"]',
-      '.user-profile'
+      '.user-profile',
+      '[data-test="user-avatar"]',
+      '.user-avatar',
+      '.user-dropdown',
+      '[data-test="user-dropdown"]',
+      '.header-user',
+      '.user-info',
+      'button[aria-label*="user"]',
+      'button[aria-label*="profile"]',
+      '.user-menu-toggle',
+      '[data-test="user-menu-toggle"]'
     ];
     
     for (const selector of loginIndicators) {
-      if (document.querySelector(selector)) {
+      const element = document.querySelector(selector);
+      if (element && element.offsetParent !== null) { // Check if visible
+        console.log('Found login indicator:', selector);
         return true;
       }
     }
     
     // Check URL for logged-in patterns
-    const loggedInUrls = ['/nx/', '/dashboard', '/jobs/'];
-    return loggedInUrls.some(pattern => window.location.href.includes(pattern));
+    const loggedInUrls = ['/nx/', '/dashboard', '/jobs/', '/messages/', '/proposals/', '/find-work/'];
+    const isLoggedInUrl = loggedInUrls.some(pattern => window.location.href.includes(pattern));
+    
+    // Check for login page indicators (if we're on login page, we're not logged in)
+    const loginPageIndicators = [
+      'input[name="username"]',
+      'input[name="email"]',
+      'input[type="email"]',
+      '.login-form',
+      '[data-test="login-form"]',
+      'button[type="submit"]'
+    ];
+    
+    const isOnLoginPage = loginPageIndicators.some(selector => document.querySelector(selector));
+    
+    console.log('URL check:', isLoggedInUrl, 'Login page check:', isOnLoginPage);
+    
+    // If we're on a login page, we're definitely not logged in
+    if (isOnLoginPage) {
+      return false;
+    }
+    
+    // If we're on a logged-in URL pattern, we're probably logged in
+    return isLoggedInUrl;
   }
 
   async waitForPageLoad() {
