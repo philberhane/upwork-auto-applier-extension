@@ -442,6 +442,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       break;
       
+    case 'confirm_login':
+      console.log('🔐 Background: User confirmed login manually');
+      upworkApplier.sendToBackend({
+        type: 'login_status',
+        isLoggedIn: true,
+        sessionId: request.sessionId
+      });
+      sendResponse({ success: true, message: 'Login confirmed' });
+      break;
+      
     case 'disconnect':
       upworkApplier.ws?.close();
       upworkApplier.stopLoginMonitoring();

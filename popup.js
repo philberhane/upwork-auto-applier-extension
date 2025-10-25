@@ -15,6 +15,8 @@ class PopupController {
     document.getElementById('connectToSessionBtn').addEventListener('click', () => this.connectToSession());
     document.getElementById('connectBtn').addEventListener('click', () => this.connect());
     document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
+    document.getElementById('confirmLoginBtn').addEventListener('click', () => this.confirmLogin());
+    document.getElementById('disconnectBtn2').addEventListener('click', () => this.disconnect());
     
     // Update status every 5 seconds
     setInterval(() => this.updateStatus(), 5000);
@@ -41,6 +43,7 @@ class PopupController {
     const sessionInfo = document.getElementById('sessionInfo');
     const sessionInput = document.getElementById('sessionInput');
     const connectionButtons = document.getElementById('connectionButtons');
+    const loginButtons = document.getElementById('loginButtons');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
 
@@ -49,15 +52,15 @@ class PopupController {
       statusText.textContent = 'Connected';
       sessionInfo.textContent = `Session: ${this.sessionId?.substring(0, 8)}...`;
       sessionInput.style.display = 'none';
-      connectionButtons.style.display = 'block';
-      connectBtn.style.display = 'none';
-      disconnectBtn.style.display = 'block';
+      connectionButtons.style.display = 'none';
+      loginButtons.style.display = 'block';
     } else {
       statusDot.className = 'status-dot disconnected';
       statusText.textContent = 'Disconnected';
       sessionInfo.textContent = 'No active session';
       sessionInput.style.display = 'block';
       connectionButtons.style.display = 'none';
+      loginButtons.style.display = 'none';
     }
   }
 
@@ -123,6 +126,20 @@ class PopupController {
     } finally {
       connectBtn.textContent = originalText;
       connectBtn.disabled = false;
+    }
+  }
+
+  async confirmLogin() {
+    try {
+      console.log('🔐 Popup: Confirming login status...');
+      await chrome.runtime.sendMessage({ 
+        action: 'confirm_login',
+        sessionId: this.sessionId
+      });
+      this.showMessage('✅ Login confirmed! Jobs will start processing...', 'success');
+    } catch (error) {
+      console.error('Login confirmation failed:', error);
+      this.showMessage('Login confirmation failed', 'error');
     }
   }
 
