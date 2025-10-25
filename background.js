@@ -22,11 +22,14 @@ class UpworkAutoApplier {
 
   async connectToAPI() {
     try {
+      console.log('Attempting to connect to API with sessionId:', this.sessionId);
+      console.log('WebSocket URL:', `${this.apiUrl.replace('https', 'wss')}/ws/${this.sessionId}`);
+      
       // Create WebSocket connection to API
       this.ws = new WebSocket(`${this.apiUrl.replace('https', 'wss')}/ws/${this.sessionId}`);
       
       this.ws.onopen = () => {
-        console.log('Connected to Upwork Auto Applier API');
+        console.log('✅ Connected to Upwork Auto Applier API');
         this.isConnected = true;
         this.updateBadge('ON');
         
@@ -46,8 +49,8 @@ class UpworkAutoApplier {
         this.handleMessage(data);
       };
 
-      this.ws.onclose = () => {
-        console.log('Disconnected from API');
+      this.ws.onclose = (event) => {
+        console.log('❌ Disconnected from API. Code:', event.code, 'Reason:', event.reason);
         this.isConnected = false;
         this.updateBadge('OFF');
         // Reconnect after 5 seconds
@@ -55,7 +58,7 @@ class UpworkAutoApplier {
       };
 
       this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('❌ WebSocket error:', error);
         this.updateBadge('ERR');
       };
 
@@ -260,18 +263,23 @@ class UpworkAutoApplier {
 
   async connectToSession(sessionId) {
     try {
+      console.log('🔗 Connecting to session:', sessionId);
       this.sessionId = sessionId;
       
       // Check if user is already logged in before storing session info
+      console.log('🔍 Checking current login status...');
       const isAlreadyLoggedIn = await this.checkCurrentLoginStatus();
+      console.log('📊 Login status:', isAlreadyLoggedIn);
       
       // Store session info
       await chrome.storage.local.set({
         sessionId: this.sessionId,
         isLoggedIn: isAlreadyLoggedIn
       });
+      console.log('💾 Session info stored');
       
       // Connect to API with specific session
+      console.log('🌐 Connecting to API...');
       this.connectToAPI();
       
       return { 
@@ -280,7 +288,7 @@ class UpworkAutoApplier {
         isLoggedIn: isAlreadyLoggedIn
       };
     } catch (error) {
-      console.error('Failed to connect to session:', error);
+      console.error('❌ Failed to connect to session:', error);
       throw error;
     }
   }
