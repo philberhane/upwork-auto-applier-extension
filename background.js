@@ -307,15 +307,20 @@ class UpworkAutoApplier {
       const tab = tabs[0];
       console.log('Checking login status on tab:', tab.url);
       
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'check_login_status'
-      });
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'check_login_status'
+        });
 
-      if (response && response.isLoggedIn !== undefined) {
-        console.log('Login status detected:', response.isLoggedIn);
-        return response.isLoggedIn;
-      } else {
-        console.log('No valid login status response:', response);
+        if (response && response.isLoggedIn !== undefined) {
+          console.log('Login status detected:', response.isLoggedIn);
+          return response.isLoggedIn;
+        } else {
+          console.log('No valid login status response:', response);
+        }
+      } catch (error) {
+        console.log('Content script not ready, assuming not logged in:', error.message);
+        return false;
       }
       
       return false;
