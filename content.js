@@ -126,8 +126,14 @@ class UpworkContentScript {
         
       case 'check_login_status':
         this.checkLoginStatus()
-          .then(isLoggedIn => sendResponse({ isLoggedIn }))
-          .catch(error => sendResponse({ isLoggedIn: false, error: error.message }));
+          .then(isLoggedIn => {
+            console.log('Login status check result:', isLoggedIn);
+            sendResponse({ isLoggedIn });
+          })
+          .catch(error => {
+            console.error('Login status check error:', error);
+            sendResponse({ isLoggedIn: false, error: error.message });
+          });
         return true;
         
       case 'get_page_info':

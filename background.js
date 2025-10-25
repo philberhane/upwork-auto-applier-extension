@@ -125,7 +125,10 @@ class UpworkAutoApplier {
 
   sendToBackend(message) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('Sending message to backend:', message);
       this.ws.send(JSON.stringify(message));
+    } else {
+      console.log('WebSocket not ready, cannot send message:', message);
     }
   }
 
@@ -302,6 +305,8 @@ class UpworkAutoApplier {
       if (response && response.isLoggedIn !== undefined) {
         console.log('Login status detected:', response.isLoggedIn);
         return response.isLoggedIn;
+      } else {
+        console.log('No valid login status response:', response);
       }
       
       return false;
