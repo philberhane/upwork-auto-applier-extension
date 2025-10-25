@@ -110,17 +110,31 @@ class UpworkAutoApplier {
     
     if (!tab || !tab.url.includes('upwork.com')) {
       console.log('❌ No Upwork tab found, creating one...');
-      // Navigate to Upwork
-      const newTab = await chrome.tabs.create({ url: 'https://www.upwork.com' });
-      console.log('📄 Created new Upwork tab:', newTab.id);
-      
-      // Wait for tab to load and content script to be ready
-      await this.waitForContentScript(newTab.id);
+      try {
+        // Navigate to Upwork
+        const newTab = await chrome.tabs.create({ url: 'https://www.upwork.com' });
+        console.log('📄 Created new Upwork tab:', newTab.id);
+        
+        // Wait for tab to load and content script to be ready
+        await this.waitForContentScript(newTab.id);
+        
+        // Send job queue to the new tab
+        await this.sendJobQueueToTab(newTab.id);
+      } catch (error) {
+        console.error('❌ Failed to create or communicate with new tab:', error);
+        // Don't retry - this prevents infinite tab creation
+        return;
+      }
       return;
     }
 
     // Send job queue to content script instead of individual jobs
-    await this.sendJobQueueToTab(tab.id);
+    try {
+      await this.sendJobQueueToTab(tab.id);
+    } catch (error) {
+      console.error('❌ Failed to send job queue to existing tab:', error);
+      // Don't retry - this prevents infinite tab creation
+    }
   }
 
   async sendJobQueueToTab(tabId) {

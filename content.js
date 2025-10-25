@@ -204,6 +204,16 @@ class UpworkContentScript {
         console.log('✅ Screening questions filled');
       }
       
+      // Handle specialized profile selection
+      console.log('👤 Handling specialized profile selection...');
+      await this.handleSpecializedProfile();
+      console.log('✅ Specialized profile handled');
+      
+      // Handle hourly vs budget job settings
+      console.log('💰 Handling job type settings...');
+      await this.handleJobTypeSettings();
+      console.log('✅ Job type settings handled');
+      
       // Handle rate increase/frequency settings
       console.log('💰 Handling rate increase/frequency settings...');
       await this.handleRateIncrease();
@@ -588,13 +598,12 @@ class UpworkContentScript {
     await this.wait(2000);
     
     const textareaSelectors = [
+      'textarea.air3-textarea.inner-textarea',  // Primary selector from legacy
       'textarea[name="coverLetter"]',
       'textarea[data-test="cover-letter"]',
       'textarea[placeholder*="cover letter"]',
       'textarea[placeholder*="proposal"]',
-      'textarea[placeholder*="message"]',
-      'textarea',
-      'input[type="text"]'
+      'textarea[placeholder*="message"]'
     ];
     
     console.log('📄 Current page HTML preview:', document.body.innerHTML.substring(0, 500));
@@ -638,6 +647,120 @@ class UpworkContentScript {
     // For now, just log that we received them
     console.log('Screening responses received:', responses);
     // In a real implementation, you'd find and fill the screening question fields
+  }
+
+  async handleSpecializedProfile() {
+    console.log('🔍 Looking for specialized profile dropdown...');
+    
+    // Wait for page to load
+    await this.wait(3000);
+    
+    try {
+      // Look for the token text (e.g., "Full Stack Development" or "Mobile App Development")
+      const tokenElement = document.querySelector('.air3-token.text-body-sm.mb-0');
+      if (!tokenElement) {
+        console.log('⚠️ No specialized profile token found, skipping...');
+        return;
+      }
+      
+      const tokenText = tokenElement.textContent.trim();
+      console.log(`📋 Detected token: "${tokenText}"`);
+      
+      // Click the specialized profile dropdown
+      const profileToggle = document.querySelector('.air3-dropdown-toggle-label.ellipsis');
+      if (!profileToggle) {
+        console.log('⚠️ No profile dropdown found, skipping...');
+        return;
+      }
+      
+      console.log('👆 Clicking specialized profile dropdown...');
+      profileToggle.click();
+      await this.wait(1000);
+      
+      // Find all profile items
+      const profileItems = document.querySelectorAll('li.air3-menu-item');
+      if (profileItems.length === 0) {
+        console.log('⚠️ No profile items found, skipping...');
+        return;
+      }
+      
+      // Select profile based on token (like legacy version)
+      if (tokenText === 'Full Stack Development') {
+        console.log('🎯 Choosing 2nd item for Full Stack Development...');
+        profileItems[1]?.click();
+      } else if (tokenText === 'Mobile App Development') {
+        console.log('🎯 Choosing 3rd item for Mobile App Development...');
+        profileItems[2]?.click();
+      } else {
+        console.log('🎯 Choosing 1st item by default...');
+        profileItems[0]?.click();
+      }
+      
+      console.log('✅ Specialized profile selected');
+    } catch (error) {
+      console.error('❌ Error handling specialized profile:', error);
+    }
+  }
+
+  async handleJobTypeSettings() {
+    console.log('🔍 Determining job type (hourly vs budget)...');
+    
+    try {
+      // Check if it's a budget job (has checkbox input)
+      const budgetCheckbox = document.querySelector("span[data-test='checkbox-input']");
+      const isBudget = !!budgetCheckbox;
+      
+      console.log(`💰 Job type: ${isBudget ? 'BUDGET' : 'HOURLY'}`);
+      
+      if (!isBudget) {
+        // HOURLY JOB: select "Never" (like legacy version)
+        console.log('⏰ Handling hourly job - selecting "Never"...');
+        
+        const dropdowns = document.querySelectorAll('.air3-dropdown-toggle-label.ellipsis');
+        if (dropdowns.length > 1) {
+          const hourlyToggle = dropdowns[1]; // Second dropdown
+          hourlyToggle.click();
+          await this.wait(1000);
+          
+          // Click first option (assumed "Never")
+          const firstOption = document.querySelector('div.air3-dropdown-menu li.air3-menu-item');
+          if (firstOption) {
+            firstOption.click();
+            console.log('✅ "Never" selected for hourly job');
+          }
+        }
+      } else {
+        // BUDGET JOB: choose "By project" + duration "1 to 3 months" (like legacy version)
+        console.log('💵 Handling budget job - selecting "By project" and duration...');
+        
+        // Click "By project" checkbox
+        const projectCheckbox = document.querySelector('label:has-text("By project") span.air3-checkbox-fake-input[data-test="checkbox-input"]');
+        if (projectCheckbox) {
+          projectCheckbox.click();
+          console.log('✅ "By project" checkbox clicked');
+          await this.wait(1000);
+        }
+        
+        // Open duration dropdown
+        const durationToggle = document.querySelector('div[data-test="dropdown-toggle"][aria-labelledby="duration-label"]');
+        if (durationToggle) {
+          durationToggle.click();
+          await this.wait(1000);
+          
+          // Click third option (index 2) = "1 to 3 months"
+          const menu = document.querySelector('div.air3-dropdown-menu');
+          if (menu) {
+            const durationOption = menu.querySelectorAll('li.air3-menu-item')[2];
+            if (durationOption) {
+              durationOption.click();
+              console.log('✅ Duration "1 to 3 months" selected');
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error handling job type settings:', error);
+    }
   }
 
   async handleRateIncrease() {
@@ -733,6 +856,7 @@ class UpworkContentScript {
     await this.wait(3000);
     
     const buttonSelectors = [
+      'button.air3-btn.air3-btn-primary.m-0',  // Primary selector from legacy
       'button[data-test="submit-btn"]',
       'button[data-cy="submit-btn"]',
       'button[data-test="submit-proposal-btn"]',
