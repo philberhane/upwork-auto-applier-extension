@@ -211,15 +211,33 @@ class UpworkContentScript {
         
       case 'process_job':
         console.log('🚀 Content script processing job:', request.jobData);
+        let responseSent = false;
+        
         this.processJob(request.jobData)
           .then(result => {
             console.log('✅ Content script job completed:', result);
-            sendResponse({ success: true, result });
+            if (!responseSent) {
+              responseSent = true;
+              sendResponse({ success: true, result });
+            }
           })
           .catch(error => {
             console.error('❌ Content script job failed:', error);
-            sendResponse({ success: false, error: error.message });
+            if (!responseSent) {
+              responseSent = true;
+              sendResponse({ success: false, error: error.message });
+            }
           });
+          
+        // Send immediate response for navigation case
+        setTimeout(() => {
+          if (!responseSent) {
+            console.log('📤 Content script sending immediate response');
+            responseSent = true;
+            sendResponse({ success: true, message: 'Job processing initiated' });
+          }
+        }, 100);
+        
         return true; // Keep message channel open for async response
         
       case 'check_login_status':
