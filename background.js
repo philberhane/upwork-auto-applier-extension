@@ -108,21 +108,24 @@ class UpworkAutoApplier {
 
     // Send job data to content script for processing
     try {
+      console.log('📤 Sending job to content script:', jobData);
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'process_job',
         jobData: jobData
       });
       
+      console.log('📥 Content script response:', response);
+      
       // Send result back to backend
       this.sendToBackend({
         type: 'job_completed',
         jobId: jobData.jobId,
-        success: response.success,
-        message: response.message || 'Job application completed'
+        success: response?.success || false,
+        message: response?.message || 'Job application completed'
       });
       
     } catch (error) {
-      console.error('Job application failed:', error);
+      console.error('❌ Job application failed:', error);
       this.sendToBackend({
         type: 'job_failed',
         jobId: jobData.jobId,

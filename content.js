@@ -117,11 +117,20 @@ class UpworkContentScript {
   }
 
   handleMessage(request, sendResponse) {
+    console.log('📨 Content script received message:', request);
+    
     switch (request.action) {
       case 'process_job':
+        console.log('🚀 Content script processing job:', request.jobData);
         this.processJob(request.jobData)
-          .then(result => sendResponse({ success: true, result }))
-          .catch(error => sendResponse({ success: false, error: error.message }));
+          .then(result => {
+            console.log('✅ Content script job completed:', result);
+            sendResponse({ success: true, result });
+          })
+          .catch(error => {
+            console.error('❌ Content script job failed:', error);
+            sendResponse({ success: false, error: error.message });
+          });
         return true; // Keep message channel open for async response
         
       case 'check_login_status':
