@@ -128,16 +128,31 @@
     <div class="session-info" id="sessionInfo">No active session</div>
   </div>
   
-  <div class="buttons">
+  <div class="session-input" id="sessionInput" style="margin-bottom: 15px;">
+    <label for="sessionIdField" style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">
+      Session ID (from Apify console):
+    </label>
+    <input type="text" id="sessionIdField" placeholder="Enter session ID..." style="
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    " />
+    <button class="btn btn-primary" id="connectToSessionBtn" style="width: 100%;">Connect to Session</button>
+  </div>
+  
+  <div class="buttons" id="connectionButtons" style="display: none;">
     <button class="btn btn-primary" id="connectBtn">Connect to Service</button>
-    <button class="btn btn-secondary" id="disconnectBtn" style="display: none;">Disconnect</button>
+    <button class="btn btn-secondary" id="disconnectBtn">Disconnect</button>
   </div>
   
   <div class="instructions">
     <strong>How to use:</strong><br>
-    1. Click "Connect to Service"<br>
-    2. Log into Upwork in this browser<br>
-    3. Run your Make.com automation<br>
+    1. Run your Apify actor and copy the Session ID<br>
+    2. Paste Session ID above and click "Connect to Session"<br>
+    3. Log into Upwork in this browser<br>
     4. Jobs will be applied automatically
   </div>
   

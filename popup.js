@@ -12,6 +12,7 @@ class PopupController {
     await this.updateStatus();
     
     // Set up event listeners
+    document.getElementById('connectToSessionBtn').addEventListener('click', () => this.connectToSession());
     document.getElementById('connectBtn').addEventListener('click', () => this.connect());
     document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     
@@ -38,6 +39,8 @@ class PopupController {
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const sessionInfo = document.getElementById('sessionInfo');
+    const sessionInput = document.getElementById('sessionInput');
+    const connectionButtons = document.getElementById('connectionButtons');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
 
@@ -45,14 +48,45 @@ class PopupController {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
       sessionInfo.textContent = `Session: ${this.sessionId?.substring(0, 8)}...`;
+      sessionInput.style.display = 'none';
+      connectionButtons.style.display = 'block';
       connectBtn.style.display = 'none';
       disconnectBtn.style.display = 'block';
     } else {
       statusDot.className = 'status-dot disconnected';
       statusText.textContent = 'Disconnected';
       sessionInfo.textContent = 'No active session';
-      connectBtn.style.display = 'block';
-      disconnectBtn.style.display = 'none';
+      sessionInput.style.display = 'block';
+      connectionButtons.style.display = 'none';
+    }
+  }
+
+  async connectToSession() {
+    const sessionIdField = document.getElementById('sessionIdField');
+    const sessionId = sessionIdField.value.trim();
+    
+    if (!sessionId) {
+      this.showMessage('Please enter a Session ID', 'error');
+      return;
+    }
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ 
+        action: 'connect_to_session', 
+        sessionId: sessionId 
+      });
+      
+      if (response.success) {
+        this.sessionId = sessionId;
+        this.isConnected = true;
+        this.updateUI();
+        this.showMessage('Connected to session successfully!', 'success');
+      } else {
+        throw new Error(response.error || 'Failed to connect to session');
+      }
+    } catch (error) {
+      console.error('Session connection failed:', error);
+      this.showMessage(`Connection failed: ${error.message}`, 'error');
     }
   }
 

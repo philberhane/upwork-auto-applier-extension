@@ -188,6 +188,26 @@ class UpworkAutoApplier {
     chrome.action.setBadgeBackgroundColor({ color: text === 'ON' ? '#4CAF50' : '#FF5722' });
   }
 
+  async connectToSession(sessionId) {
+    try {
+      this.sessionId = sessionId;
+      
+      // Store session info
+      await chrome.storage.local.set({
+        sessionId: this.sessionId,
+        isLoggedIn: true
+      });
+      
+      // Connect to API with specific session
+      this.connectToAPI();
+      
+      return { sessionId: this.sessionId, message: 'Connected to session' };
+    } catch (error) {
+      console.error('Failed to connect to session:', error);
+      throw error;
+    }
+  }
+
   async startSession() {
     try {
       const response = await fetch(`${this.apiUrl}/session`, {
@@ -225,6 +245,12 @@ const upworkApplier = new UpworkAutoApplier();
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
+    case 'connect_to_session':
+      upworkApplier.connectToSession(request.sessionId)
+        .then(data => sendResponse({ success: true, data }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true; // Keep message channel open for async response
+      
     case 'start_session':
       upworkApplier.startSession()
         .then(data => sendResponse({ success: true, data }))
