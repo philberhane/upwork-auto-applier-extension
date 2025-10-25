@@ -7,6 +7,7 @@ class UpworkAutoApplier {
     this.isConnected = false;
     this.ws = null;
     this.manualLoginConfirmed = false;
+    this.isProcessingJobs = false; // Prevent multiple job processing attempts
     this.init();
   }
 
@@ -90,9 +91,18 @@ class UpworkAutoApplier {
   async handleJobApplication(data) {
     console.log('Processing job application:', data);
     
+    // Prevent multiple job processing attempts
+    if (this.isProcessingJobs) {
+      console.log('⚠️ Already processing jobs, ignoring new request');
+      return;
+    }
+    
+    this.isProcessingJobs = true;
+    
     const jobData = data.jobData;
     if (!jobData) {
       console.error('❌ No jobData in message:', data);
+      this.isProcessingJobs = false;
       return;
     }
     
@@ -134,6 +144,8 @@ class UpworkAutoApplier {
     } catch (error) {
       console.error('❌ Failed to send job queue to existing tab:', error);
       // Don't retry - this prevents infinite tab creation
+    } finally {
+      this.isProcessingJobs = false; // Reset flag
     }
   }
 
@@ -590,11 +602,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'confirm_login':
       console.log('🔐 Background: User confirmed login manually');
       upworkApplier.manualLoginConfirmed = true;
+      
+      // Send immediate confirmation to backend
       upworkApplier.sendToBackend({
         type: 'login_status',
         isLoggedIn: true,
         sessionId: request.sessionId
       });
+      
+      // Update local storage
+      chrome.storage.local.set({ 
+        isLoggedIn: true,
+        manualLoginConfirmed: true 
+      });
+      
+      console.log('✅ Login confirmed and stored locally');
       sendResponse({ success: true, message: 'Login confirmed' });
       break;
       

@@ -832,17 +832,23 @@ class UpworkContentScript {
       }
     }
     
-    // Look for any "increase" or "raise" buttons
-    const increaseButtons = document.querySelectorAll('button, a, span');
-    for (const button of increaseButtons) {
-      const text = button.textContent?.toLowerCase() || '';
-      if (text.includes('increase') || text.includes('raise') || text.includes('more')) {
-        if (button.offsetParent !== null) {
-          console.log('✅ Found increase button, clicking...');
-          button.click();
-          console.log('✅ Increase button clicked');
-          await this.wait(1000); // Wait after clicking
-        }
+    // Look for specific rate increase buttons (more targeted)
+    const increaseButtonSelectors = [
+      'button[data-test*="increase"]',
+      'button[data-cy*="increase"]',
+      'button[aria-label*="increase"]',
+      'button[class*="increase"]',
+      'a[href*="increase"]'
+    ];
+    
+    for (const selector of increaseButtonSelectors) {
+      const button = document.querySelector(selector);
+      if (button && button.offsetParent !== null) {
+        console.log('✅ Found rate increase button, clicking...');
+        button.click();
+        console.log('✅ Rate increase button clicked');
+        await this.wait(1000);
+        break; // Only click one
       }
     }
     
