@@ -95,43 +95,25 @@ class UpworkAutoApplier {
       return;
     }
     
+    // Store job data for later use
+    this.pendingJobData = jobData;
+    
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     if (!tab || !tab.url.includes('upwork.com')) {
+      console.log('❌ No Upwork tab found, creating one...');
       // Navigate to Upwork
-      await chrome.tabs.create({ url: 'https://www.upwork.com' });
-      // Wait a bit for page to load
-      setTimeout(() => this.handleJobApplication(data), 3000);
+      const newTab = await chrome.tabs.create({ url: 'https://www.upwork.com' });
+      console.log('📄 Created new Upwork tab:', newTab.id);
+      
+      // Wait for tab to load and content script to be ready
+      await this.waitForContentScript(newTab.id);
       return;
     }
 
-    // Send job data to content script for processing
-    try {
-      console.log('📤 Sending job to content script:', jobData);
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'process_job',
-        jobData: jobData
-      });
-      
-      console.log('📥 Content script response:', response);
-      
-      // Send result back to backend
-      this.sendToBackend({
-        type: 'job_completed',
-        jobId: jobData.jobId,
-        success: response?.success || false,
-        message: response?.message || 'Job application completed'
-      });
-      
-    } catch (error) {
-      console.error('❌ Job application failed:', error);
-      this.sendToBackend({
-        type: 'job_failed',
-        jobId: jobData.jobId,
-        error: error.message
-      });
-    }
+    // Process job on existing tab
+    await this.processJobOnTab(tab.id, jobData);
   }
 
   sendToBackend(message) {
@@ -330,6 +312,65 @@ class UpworkAutoApplier {
     } catch (error) {
       console.error('❌ Failed to connect to session:', error);
       throw error;
+    }
+  }
+
+  async waitForContentScript(tabId, maxAttempts = 10) {
+    console.log('⏳ Waiting for content script to load on tab:', tabId);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        // Try to ping the content script
+        const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+        if (response) {
+          console.log('✅ Content script is ready');
+          // Now process the job
+          const jobData = this.pendingJobData;
+          if (jobData) {
+            this.pendingJobData = null;
+            await this.processJobOnTab(tabId, jobData);
+          }
+          return;
+        }
+      } catch (error) {
+        console.log(`⏳ Content script not ready yet (attempt ${i + 1}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.error('❌ Content script never loaded');
+    this.sendToBackend({
+      type: 'job_failed',
+      jobId: this.pendingJobData?.jobId,
+      error: 'Content script failed to load'
+    });
+  }
+
+  async processJobOnTab(tabId, jobData) {
+    try {
+      console.log('📤 Sending job to content script on tab:', tabId);
+      const response = await chrome.tabs.sendMessage(tabId, {
+        action: 'process_job',
+        jobData: jobData
+      });
+      
+      console.log('📥 Content script response:', response);
+      
+      // Send result back to backend
+      this.sendToBackend({
+        type: 'job_completed',
+        jobId: jobData.jobId,
+        success: response?.success || false,
+        message: response?.message || 'Job application completed'
+      });
+      
+    } catch (error) {
+      console.error('❌ Job application failed:', error);
+      this.sendToBackend({
+        type: 'job_failed',
+        jobId: jobData.jobId,
+        error: error.message
+      });
     }
   }
 

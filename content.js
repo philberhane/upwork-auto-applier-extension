@@ -120,6 +120,11 @@ class UpworkContentScript {
     console.log('📨 Content script received message:', request);
     
     switch (request.action) {
+      case 'ping':
+        console.log('🏓 Content script ping received');
+        sendResponse({ pong: true });
+        break;
+        
       case 'process_job':
         console.log('🚀 Content script processing job:', request.jobData);
         this.processJob(request.jobData)
