@@ -357,7 +357,9 @@ class UpworkAutoApplier {
 }
 
 // Initialize extension
+console.log('🚀 Starting Upwork Auto Applier Extension...');
 const upworkApplier = new UpworkAutoApplier();
+console.log('✅ Extension initialized successfully');
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
