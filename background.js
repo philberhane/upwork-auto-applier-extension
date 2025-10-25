@@ -319,7 +319,14 @@ class UpworkAutoApplier {
           console.log('No valid login status response:', response);
         }
       } catch (error) {
-        console.log('Content script not ready, assuming not logged in:', error.message);
+        console.log('Content script not ready, checking URL for login indicators:', error.message);
+        
+        // Fallback: Check if URL indicates login (not on login page)
+        if (tab.url.includes('/find-work/') || tab.url.includes('/nx/find-work/')) {
+          console.log('User appears to be on Upwork main page - likely logged in');
+          return true; // Assume logged in if on main Upwork page
+        }
+        
         return false;
       }
       
