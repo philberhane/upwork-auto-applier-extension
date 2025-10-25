@@ -207,10 +207,13 @@ class UpworkAutoApplier {
 
   async checkAndReportLoginStatus() {
     try {
+      console.log('🔍 checkAndReportLoginStatus: Starting login check...');
       // Get all Upwork tabs
       const tabs = await chrome.tabs.query({ url: ['https://www.upwork.com/*', 'https://upwork.com/*'] });
+      console.log('📊 Found Upwork tabs:', tabs.length);
       
       if (tabs.length === 0) {
+        console.log('❌ No Upwork tabs open, user not logged in');
         // No Upwork tabs open, user not logged in
         this.sendToBackend({
           type: 'login_status',
@@ -222,22 +225,52 @@ class UpworkAutoApplier {
 
       // Check login status on the first Upwork tab
       const tab = tabs[0];
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'check_login_status'
-      });
+      console.log('🔍 Checking tab:', tab.url);
+      
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'check_login_status'
+        });
+        console.log('📊 Content script response:', response);
 
-      if (response && response.isLoggedIn !== undefined) {
+        if (response && response.isLoggedIn !== undefined) {
+          console.log('✅ Login status from content script:', response.isLoggedIn);
+          this.sendToBackend({
+            type: 'login_status',
+            isLoggedIn: response.isLoggedIn,
+            sessionId: this.sessionId
+          });
+          
+          // Update storage
+          await chrome.storage.local.set({ isLoggedIn: response.isLoggedIn });
+        } else {
+          console.log('❌ No valid response from content script, using URL fallback');
+          // Use URL fallback
+          const isLoggedIn = tab.url.includes('/find-work/') || tab.url.includes('/nx/find-work/') || 
+                           (tab.url.includes('upwork.com') && !tab.url.includes('/login'));
+          console.log('🔍 URL fallback result:', isLoggedIn);
+          
+          this.sendToBackend({
+            type: 'login_status',
+            isLoggedIn: isLoggedIn,
+            sessionId: this.sessionId
+          });
+        }
+      } catch (error) {
+        console.log('❌ Content script error, using URL fallback:', error.message);
+        // Use URL fallback
+        const isLoggedIn = tab.url.includes('/find-work/') || tab.url.includes('/nx/find-work/') || 
+                         (tab.url.includes('upwork.com') && !tab.url.includes('/login'));
+        console.log('🔍 URL fallback result:', isLoggedIn);
+        
         this.sendToBackend({
           type: 'login_status',
-          isLoggedIn: response.isLoggedIn,
+          isLoggedIn: isLoggedIn,
           sessionId: this.sessionId
         });
-        
-        // Update storage
-        await chrome.storage.local.set({ isLoggedIn: response.isLoggedIn });
       }
     } catch (error) {
-      console.error('Failed to check login status:', error);
+      console.error('❌ Failed to check login status:', error);
       // Assume not logged in if we can't check
       this.sendToBackend({
         type: 'login_status',
@@ -320,13 +353,18 @@ class UpworkAutoApplier {
         }
       } catch (error) {
         console.log('Content script not ready, checking URL for login indicators:', error.message);
+        console.log('Current tab URL:', tab.url);
         
         // Fallback: Check if URL indicates login (not on login page)
         if (tab.url.includes('/find-work/') || tab.url.includes('/nx/find-work/')) {
-          console.log('User appears to be on Upwork main page - likely logged in');
+          console.log('✅ User appears to be on Upwork main page - likely logged in');
           return true; // Assume logged in if on main Upwork page
+        } else if (tab.url.includes('upwork.com') && !tab.url.includes('/login')) {
+          console.log('✅ User is on Upwork domain but not login page - likely logged in');
+          return true; // Assume logged in if on Upwork but not login page
         }
         
+        console.log('❌ User appears to be on login page or not on Upwork');
         return false;
       }
       
