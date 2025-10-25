@@ -7,12 +7,18 @@ class UpworkContentScript {
   }
 
   init() {
+    console.log('🚀 Content script initializing...');
+    console.log('🌐 Current URL:', window.location.href);
+    console.log('🔍 Is Upwork page:', this.isUpworkPage);
+    
     if (this.isUpworkPage) {
       console.log('Upwork Auto Applier: Content script loaded on Upwork page');
       this.setupUpworkPage();
       
       // Check if there's stored job data from a previous page reload
       this.checkForStoredJobData();
+    } else {
+      console.log('❌ Not an Upwork page, skipping initialization');
     }
   }
 
@@ -66,11 +72,15 @@ class UpworkContentScript {
 
   checkForStoredJobData() {
     // Check if there's job data stored from a previous page reload
+    console.log('🔍 Checking for stored job data...');
     const storedJobData = sessionStorage.getItem('upworkJobData');
+    console.log('📦 Stored job data:', storedJobData);
+    
     if (storedJobData) {
       console.log('🔄 Found stored job data from page reload, processing...');
       try {
         const jobData = JSON.parse(storedJobData);
+        console.log('📋 Parsed job data:', jobData);
         // Process the job after a short delay to ensure page is ready
         setTimeout(() => {
           this.processJobAfterReload(jobData);
@@ -79,6 +89,8 @@ class UpworkContentScript {
         console.error('❌ Failed to parse stored job data:', error);
         sessionStorage.removeItem('upworkJobData');
       }
+    } else {
+      console.log('❌ No stored job data found');
     }
   }
 
@@ -270,8 +282,13 @@ class UpworkContentScript {
     
     try {
       // Store job data in sessionStorage to survive page reloads
+      console.log('💾 Storing job data in sessionStorage:', jobData);
       sessionStorage.setItem('upworkJobData', JSON.stringify(jobData));
-      console.log('💾 Job data stored in sessionStorage');
+      console.log('✅ Job data stored in sessionStorage');
+      
+      // Verify storage
+      const stored = sessionStorage.getItem('upworkJobData');
+      console.log('🔍 Verification - stored data:', stored);
       
       // Navigate to job URL
       if (window.location.href !== jobData.jobUrl) {
