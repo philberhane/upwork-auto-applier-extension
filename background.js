@@ -127,14 +127,8 @@ class UpworkAutoApplier {
     try {
       console.log('📤 Sending job queue to content script on tab:', tabId);
       
-      // First, test if content script is responding
-      console.log('🏓 Testing content script with ping...');
-      const pingResponse = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
-      console.log('🏓 Ping response:', pingResponse);
-      
-      if (!pingResponse) {
-        throw new Error('Content script not responding to ping');
-      }
+      // Wait for content script to be ready with retries
+      await this.waitForContentScript(tabId);
       
       // Send the entire job queue
       const response = await chrome.tabs.sendMessage(tabId, {
@@ -149,7 +143,30 @@ class UpworkAutoApplier {
       
     } catch (error) {
       console.error('❌ Failed to send job queue:', error);
+      throw error;
     }
+  }
+
+  async waitForContentScript(tabId, maxAttempts = 10) {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        console.log(`🏓 Testing content script (attempt ${i + 1}/${maxAttempts})...`);
+        const pingResponse = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+        console.log('🏓 Ping response:', pingResponse);
+        
+        if (pingResponse && pingResponse.pong) {
+          console.log('✅ Content script is ready');
+          return;
+        }
+      } catch (error) {
+        console.log(`⚠️ Content script not ready yet (attempt ${i + 1}):`, error.message);
+      }
+      
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    throw new Error('Content script not responding after maximum attempts');
   }
 
   sendToBackend(message) {
@@ -521,6 +538,13 @@ console.log('✅ Extension initialized successfully');
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('📨 Background: Received message:', request);
+  
+  // Handle content script ready signal
+  if (request.type === 'content_script_ready') {
+    console.log('✅ Content script ready on:', request.url);
+    sendResponse({ received: true });
+    return;
+  }
   
   switch (request.action) {
     case 'connect_to_session':

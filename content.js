@@ -17,8 +17,24 @@ class UpworkContentScript {
       
       // Check if there's stored job data from a previous page reload
       this.checkForStoredJobData();
+      
+      // Send ready signal to background
+      this.sendReadySignal();
     } else {
       console.log('❌ Not an Upwork page, skipping initialization');
+    }
+  }
+  
+  sendReadySignal() {
+    try {
+      chrome.runtime.sendMessage({
+        type: 'content_script_ready',
+        url: window.location.href,
+        timestamp: Date.now()
+      });
+      console.log('✅ Content script ready signal sent');
+    } catch (error) {
+      console.log('⚠️ Could not send ready signal:', error);
     }
   }
 
@@ -28,7 +44,14 @@ class UpworkContentScript {
     
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      this.handleMessage(request, sendResponse);
+      console.log('📨 Content script received message:', request);
+      try {
+        this.handleMessage(request, sendResponse);
+      } catch (error) {
+        console.error('❌ Error handling message:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      return true; // Keep message channel open for async responses
     });
     
     // Monitor page changes for job applications
