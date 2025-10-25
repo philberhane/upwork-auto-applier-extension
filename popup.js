@@ -65,16 +65,20 @@ class PopupController {
     const sessionIdField = document.getElementById('sessionIdField');
     const sessionId = sessionIdField.value.trim();
     
+    console.log('🔗 Popup: Attempting to connect to session:', sessionId);
+    
     if (!sessionId) {
       this.showMessage('Please enter a Session ID', 'error');
       return;
     }
     
     try {
+      console.log('📤 Popup: Sending message to background script...');
       const response = await chrome.runtime.sendMessage({ 
         action: 'connect_to_session', 
         sessionId: sessionId 
       });
+      console.log('📥 Popup: Received response from background:', response);
       
       if (response.success) {
         this.sessionId = sessionId;

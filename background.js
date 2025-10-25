@@ -361,11 +361,20 @@ const upworkApplier = new UpworkAutoApplier();
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('📨 Background: Received message:', request);
+  
   switch (request.action) {
     case 'connect_to_session':
+      console.log('🔗 Background: Processing connect_to_session request');
       upworkApplier.connectToSession(request.sessionId)
-        .then(data => sendResponse({ success: true, data }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
+        .then(data => {
+          console.log('✅ Background: Connection successful:', data);
+          sendResponse({ success: true, data });
+        })
+        .catch(error => {
+          console.error('❌ Background: Connection failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true; // Keep message channel open for async response
       
     case 'start_session':
