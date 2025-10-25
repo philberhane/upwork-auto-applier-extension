@@ -159,6 +159,14 @@ class UpworkContentScript {
         // Process the current job
         await this.processJobAfterReload(jobData);
         
+        // Report completion of this job
+        chrome.runtime.sendMessage({
+          type: 'job_completed',
+          jobId: jobData.jobId,
+          success: true,
+          message: `Job ${i + 1} completed successfully`
+        });
+        
         // Wait between jobs
         if (i < jobQueue.length - 1) {
           console.log('⏳ Waiting before next job...');
@@ -170,9 +178,23 @@ class UpworkContentScript {
       console.log('🎉 All jobs in queue completed successfully!');
       sessionStorage.removeItem('upworkJobQueue');
       
+      // Report final completion
+      chrome.runtime.sendMessage({
+        type: 'all_jobs_completed',
+        success: true,
+        message: 'All jobs in queue completed successfully'
+      });
+      
     } catch (error) {
       console.error('❌ Job queue processing failed:', error);
       sessionStorage.removeItem('upworkJobQueue');
+      
+      // Report failure
+      chrome.runtime.sendMessage({
+        type: 'job_queue_failed',
+        success: false,
+        error: error.message
+      });
     }
   }
 
@@ -230,9 +252,6 @@ class UpworkContentScript {
       
       console.log('🎉 Job application completed successfully!');
       
-      // Clear stored job data
-      sessionStorage.removeItem('upworkJobData');
-      
       // Notify background script of completion
       chrome.runtime.sendMessage({
         type: 'job_completed',
@@ -240,6 +259,10 @@ class UpworkContentScript {
         success: true,
         message: 'Job application completed successfully'
       });
+      
+      // Clear stored job data after reporting success
+      sessionStorage.removeItem('upworkJobData');
+      sessionStorage.removeItem('upworkJobQueue');
       
     } catch (error) {
       console.error('❌ Job processing after reload failed:', error);

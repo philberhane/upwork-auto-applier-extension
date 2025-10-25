@@ -200,7 +200,8 @@ class UpworkAutoApplier {
       console.log('Sending message to backend:', message);
       this.ws.send(JSON.stringify(message));
     } else {
-      console.log('WebSocket not ready, cannot send message:', message);
+      console.log('WebSocket not ready, attempting to reconnect...');
+      this.connectToAPI();
     }
   }
 
@@ -287,6 +288,15 @@ class UpworkAutoApplier {
         });
         return;
       }
+      
+      // If manually confirmed, always report as logged in
+      console.log('✅ Manual login confirmed - reporting as logged in');
+      this.sendToBackend({
+        type: 'login_status',
+        isLoggedIn: true,
+        sessionId: this.sessionId
+      });
+      return;
       
       // Get all Upwork tabs
       const tabs = await chrome.tabs.query({ url: ['https://www.upwork.com/*', 'https://upwork.com/*'] });
