@@ -95,8 +95,14 @@ class UpworkAutoApplier {
       return;
     }
     
-    // Store job data for later use
-    this.pendingJobData = jobData;
+    // Initialize job queue if it doesn't exist
+    if (!this.jobQueue) {
+      this.jobQueue = [];
+    }
+    
+    // Add job to queue
+    this.jobQueue.push(jobData);
+    console.log('📋 Job added to queue. Queue length:', this.jobQueue.length);
     
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -112,8 +118,37 @@ class UpworkAutoApplier {
       return;
     }
 
-    // Process job on existing tab
-    await this.processJobOnTab(tab.id, jobData);
+    // Send job queue to content script instead of individual jobs
+    await this.sendJobQueueToTab(tab.id);
+  }
+
+  async sendJobQueueToTab(tabId) {
+    try {
+      console.log('📤 Sending job queue to content script on tab:', tabId);
+      
+      // First, test if content script is responding
+      console.log('🏓 Testing content script with ping...');
+      const pingResponse = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+      console.log('🏓 Ping response:', pingResponse);
+      
+      if (!pingResponse) {
+        throw new Error('Content script not responding to ping');
+      }
+      
+      // Send the entire job queue
+      const response = await chrome.tabs.sendMessage(tabId, {
+        action: 'process_job_queue',
+        jobQueue: this.jobQueue
+      });
+      
+      console.log('📥 Content script response:', response);
+      
+      // Clear the queue after sending
+      this.jobQueue = [];
+      
+    } catch (error) {
+      console.error('❌ Failed to send job queue:', error);
+    }
   }
 
   sendToBackend(message) {

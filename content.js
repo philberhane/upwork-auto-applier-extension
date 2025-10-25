@@ -73,6 +73,26 @@ class UpworkContentScript {
   checkForStoredJobData() {
     // Check if there's job data stored from a previous page reload
     console.log('🔍 Checking for stored job data...');
+    
+    // Check for job queue first
+    const storedJobQueue = sessionStorage.getItem('upworkJobQueue');
+    if (storedJobQueue) {
+      console.log('📦 Found stored job queue:', storedJobQueue);
+      try {
+        const jobQueue = JSON.parse(storedJobQueue);
+        console.log('📋 Parsed job queue with', jobQueue.length, 'jobs');
+        // Process the job queue after a short delay
+        setTimeout(() => {
+          this.processJobQueueAfterReload(jobQueue);
+        }, 2000);
+        return;
+      } catch (error) {
+        console.error('❌ Failed to parse stored job queue:', error);
+        sessionStorage.removeItem('upworkJobQueue');
+      }
+    }
+    
+    // Fallback to single job data
     const storedJobData = sessionStorage.getItem('upworkJobData');
     console.log('📦 Stored job data:', storedJobData);
     
@@ -91,6 +111,45 @@ class UpworkContentScript {
       }
     } else {
       console.log('❌ No stored job data found');
+    }
+  }
+
+  async processJobQueueAfterReload(jobQueue) {
+    console.log('🔄 Processing job queue after page reload:', jobQueue.length, 'jobs');
+    
+    try {
+      // Process jobs one by one
+      for (let i = 0; i < jobQueue.length; i++) {
+        const jobData = jobQueue[i];
+        console.log(`🎯 Processing job ${i + 1}/${jobQueue.length}:`, jobData.jobUrl);
+        
+        // Navigate to job URL if not already there
+        if (window.location.href !== jobData.jobUrl) {
+          console.log('🌐 Navigating to job URL:', jobData.jobUrl);
+          window.location.href = jobData.jobUrl;
+          
+          // Wait for page to reload and process this job
+          sessionStorage.setItem('upworkJobQueue', JSON.stringify(jobQueue.slice(i)));
+          return { success: true, message: `Navigating to job ${i + 1}...` };
+        }
+        
+        // Process the current job
+        await this.processJobAfterReload(jobData);
+        
+        // Wait between jobs
+        if (i < jobQueue.length - 1) {
+          console.log('⏳ Waiting before next job...');
+          await this.wait(5000);
+        }
+      }
+      
+      // All jobs completed
+      console.log('🎉 All jobs in queue completed successfully!');
+      sessionStorage.removeItem('upworkJobQueue');
+      
+    } catch (error) {
+      console.error('❌ Job queue processing failed:', error);
+      sessionStorage.removeItem('upworkJobQueue');
     }
   }
 
@@ -252,6 +311,19 @@ class UpworkContentScript {
         
         return true; // Keep message channel open for async response
         
+      case 'process_job_queue':
+        console.log('🚀 Content script processing job queue:', request.jobQueue);
+        this.processJobQueue(request.jobQueue)
+          .then(result => {
+            console.log('✅ Content script job queue completed:', result);
+            sendResponse({ success: true, result });
+          })
+          .catch(error => {
+            console.error('❌ Content script job queue failed:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        return true; // Keep message channel open for async response
+        
       case 'check_login_status':
         this.checkLoginStatus()
           .then(isLoggedIn => {
@@ -275,6 +347,32 @@ class UpworkContentScript {
       default:
         sendResponse({ success: false, error: 'Unknown action' });
     }
+  }
+
+  async processJobQueue(jobQueue) {
+    console.log('🚀 Processing job queue with', jobQueue.length, 'jobs');
+    
+    // Store job queue in sessionStorage
+    sessionStorage.setItem('upworkJobQueue', JSON.stringify(jobQueue));
+    console.log('💾 Job queue stored in sessionStorage');
+    
+    // Process the first job
+    if (jobQueue.length > 0) {
+      const firstJob = jobQueue[0];
+      console.log('🎯 Processing first job from queue:', firstJob.jobUrl);
+      
+      // Navigate to first job URL
+      if (window.location.href !== firstJob.jobUrl) {
+        console.log('🌐 Navigating to job URL:', firstJob.jobUrl);
+        window.location.href = firstJob.jobUrl;
+        return { success: true, message: 'Navigating to first job...' };
+      } else {
+        // Already on the job page, process it
+        return await this.processJobAfterReload(firstJob);
+      }
+    }
+    
+    return { success: true, message: 'No jobs in queue' };
   }
 
   async processJob(jobData) {
